@@ -6,7 +6,6 @@ st.set_page_config(page_title="FuturePath.kz", page_icon="🎓", layout="centere
 st.title("🎓 FuturePath.kz")
 st.write("Персональный AI-навигатор по поступлению в вузы")
 
-# Проверяем наличие ключа в защищенных секретах Streamlit Cloud
 if "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
 elif "gemini_api_key" in st.secrets:
@@ -16,11 +15,9 @@ else:
 
 st.sidebar.header("⚙️ Настройки")
 
-# Инициализация состояния сессии для демо-режима
 if "demo_mode" not in st.session_state:
     st.session_state.demo_mode = False
 
-# Инициализация полей формы в session_state
 if "track" not in st.session_state:
     st.session_state.track = "KZ (ЕНТ / Гранты)"
 if "grade" not in st.session_state:
@@ -40,7 +37,6 @@ if "target_sat" not in st.session_state:
 if "interests" not in st.session_state:
     st.session_state.interests = ""
 
-# Функция автозаполнения или очистки полей при переключении галочки
 def toggle_demo():
     if st.session_state.demo_mode:
         st.session_state.track = "KZ (ЕНТ / Гранты)"
@@ -69,7 +65,6 @@ demo_mode = st.sidebar.checkbox(
     on_change=toggle_demo
 )
 
-# Форма абитуриента
 with st.form("student_form"):
     st.subheader("Анкета абитуриента")
     
@@ -84,7 +79,6 @@ with st.form("student_form"):
         key="grade"
     )
     
-    # Выпадающий список стандартных комбинаций ЕНТ + опция "Другое"
     subject_comb = st.selectbox(
         "Профильные предметы ЕНТ", 
         [
@@ -104,7 +98,6 @@ with st.form("student_form"):
         key="subject_comb"
     )
     
-    # Если выбрано "Другое", показываем текстовое поле для ручного ввода
     if subject_comb == "Другое / Пользовательский вариант":
         subjects = st.text_input(
             "Введите свои профильные предметы вручную:",
@@ -161,9 +154,9 @@ if submitted:
         * Подготовка к сертификату IELTS до уровня B2 (6.0) для расширения возможностей.
 
         #### 🎓 Рекомендуемые вузы
-        * **КБТУ (Казахско-Британский технический университет)** — лучший выбор для IT и программной инженерии.
-        * **СДУ (Suleyman Demirel University)** — сильная школа математики и программирования.
-        * **Satbayev University** — отличные инженерные гранты.
+        * **КБТУ (Казахско-Британский технический университет)** (Алматы) — лучший выбор для IT и программной инженерии.
+        * **СДУ (Suleyman Demirel University)** (Каскелен) — сильная школа математики и программирования.
+        * **Satbayev University** (Алматы) — отличные инженерные гранты.
 
         #### 💡 Полезные советы
         * Участвуйте в хакатоне **SPARK Startup Battle** для усиления портфолио и получения грантовых преимуществ.
@@ -191,7 +184,6 @@ if submitted:
             else:
                 st.success("🎉 Ваша дорожная карта готова!")
                 
-                # Красивый бизнес-интерфейс вместо сырого JSON
                 if "steps" in result and result["steps"]:
                     st.subheader("📌 Шаги подготовки")
                     for step in result["steps"]:
@@ -200,7 +192,15 @@ if submitted:
                 if "universities" in result and result["universities"]:
                     st.subheader("🎓 Рекомендуемые вузы")
                     for uni in result["universities"]:
-                        st.markdown(f"* {uni}")
+                        # Если вуз пришел в виде словаря, красиво распаковываем его по полям
+                        if isinstance(uni, dict):
+                            name = uni.get("name", "Вуз")
+                            city = uni.get("city", "")
+                            desc = uni.get("description", "")
+                            city_str = f" ({city})" if city else ""
+                            st.markdown(f"* **{name}**{city_str} — {desc}")
+                        else:
+                            st.markdown(f"* {uni}")
                 
                 if "advice" in result and result["advice"]:
                     st.subheader("💡 Полезные советы")
