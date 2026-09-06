@@ -5,7 +5,7 @@ class FuturePathAI:
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
+            model_name="gemini-3.6-flash",
             generation_config={"response_mime_type": "application/json"}
         )
 
