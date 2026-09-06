@@ -4,7 +4,6 @@ import google.generativeai as genai
 class FuturePathAI:
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
-        # Используем актуальную и стабильную модель Gemini 2.5 Flash
         self.model = genai.GenerativeModel(
             model_name="gemini-2.5-flash",
             generation_config={"response_mime_type": "application/json"}
@@ -17,13 +16,16 @@ class FuturePathAI:
         - Трек: {user_profile.get('track')}
         - Класс: {user_profile.get('grade')}
         - Профильные предметы: {user_profile.get('subjects')}
-        - Целевой балл / IELTS: {user_profile.get('target_score')}
+        - Финансовое состояние / Бюджет: {user_profile.get('financial_status')}
+        - Желаемый балл ЕНТ: {user_profile.get('target_unt')}
+        - Желаемый балл IELTS: {user_profile.get('target_ielts')}
+        - Желаемый балл SAT: {user_profile.get('target_sat')}
         - Интересы: {user_profile.get('interests')}
 
         Верни результат строго в формате JSON со следующими ключами и списками внутри:
         - "steps": список ключевых шагов подготовки
-        - "universities": список рекомендуемых вузов (например, КБТУ, СДУ и др.)
-        - "advice": полезные советы для поступления
+        - "universities": список рекомендуемых вузов с учетом бюджета и баллов (например, КБТУ, СДУ и др.)
+        - "advice": полезные советы для поступления и получения грантов
         """
         try:
             response = self.model.generate_content(prompt)
