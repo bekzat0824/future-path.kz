@@ -6,14 +6,15 @@ st.set_page_config(page_title="FuturePath.kz", page_icon="🎓", layout="centere
 st.title("🎓 FuturePath.kz")
 st.write("Персональный AI-навигатор по поступлению в вузы")
 
-# Безопасное получение ключа из секретов Streamlit Cloud с поддержкой разного регистра
-cloud_api_key = ""
+# Проверяем наличие ключа в защищенных секретах Streamlit Cloud
 if "GEMINI_API_KEY" in st.secrets:
-    cloud_api_key = st.secrets["GEMINI_API_KEY"]
+    api_key = st.secrets["GEMINI_API_KEY"]
 elif "gemini_api_key" in st.secrets:
-    cloud_api_key = st.secrets["gemini_api_key"]
+    api_key = st.secrets["gemini_api_key"]
+else:
+    api_key = None
 
-st.sidebar.header("⚙️ Настройки ИИ")
+st.sidebar.header("⚙️ Настройки")
 
 # Инициализация состояния сессии для демо-режима
 if "demo_mode" not in st.session_state:
@@ -24,8 +25,10 @@ if "track" not in st.session_state:
     st.session_state.track = "KZ (ЕНТ / Гранты)"
 if "grade" not in st.session_state:
     st.session_state.grade = "10 класс"
-if "subjects" not in st.session_state:
-    st.session_state.subjects = ""
+if "subject_comb" not in st.session_state:
+    st.session_state.subject_comb = "Математика + Физика"
+if "subjects_custom_input" not in st.session_state:
+    st.session_state.subjects_custom_input = ""
 if "financial_status" not in st.session_state:
     st.session_state.financial_status = ""
 if "target_unt" not in st.session_state:
@@ -40,41 +43,33 @@ if "interests" not in st.session_state:
 # Функция автозаполнения или очистки полей при переключении галочки
 def toggle_demo():
     if st.session_state.demo_mode:
-        # Автозаполнение для презентации (ФизМат, 11 класс)
         st.session_state.track = "KZ (ЕНТ / Гранты)"
         st.session_state.grade = "11 класс / Колледж"
-        st.session_state.subjects = "Математика + Физика"
+        st.session_state.subject_comb = "Математика + Физика"
+        st.session_state.subjects_custom_input = ""
         st.session_state.financial_status = "Среднее, рассчитываем на государственный грант или скидку"
         st.session_state.target_unt = 120
         st.session_state.target_ielts = 6.0
         st.session_state.target_sat = 1200
         st.session_state.interests = "IT, инженерия, программирование"
     else:
-        # Очистка полей при выключении демо-режима
         st.session_state.track = "KZ (ЕНТ / Гранты)"
         st.session_state.grade = "10 класс"
-        st.session_state.subjects = ""
+        st.session_state.subject_comb = "Математика + Физика"
+        st.session_state.subjects_custom_input = ""
         st.session_state.financial_status = ""
         st.session_state.target_unt = 110
         st.session_state.target_ielts = 0.0
         st.session_state.target_sat = 0
         st.session_state.interests = ""
 
-# Чекбокс с привязкой к функции автозаполнения
 demo_mode = st.sidebar.checkbox(
     "🚀 Включить Демо-режим (для питча)", 
     key="demo_mode", 
     on_change=toggle_demo
 )
 
-# Управление ключом API
-if not cloud_api_key:
-    user_api_key = st.sidebar.text_input("Gemini API Key:", type="password")
-else:
-    user_api_key = cloud_api_key
-    st.sidebar.success("🔒 ИИ-ключ успешно подключен")
-
-# Форма анкеты с привязкой к session_state
+# Форма абитуриента
 with st.form("student_form"):
     st.subheader("Анкета абитуриента")
     
@@ -88,10 +83,36 @@ with st.form("student_form"):
         ["10 класс", "11 класс / Колледж"],
         key="grade"
     )
-    subjects = st.text_input(
-        "Профильные предметы (например: Математика + Физика)",
-        key="subjects"
+    
+    # Выпадающий список стандартных комбинаций ЕНТ + опция "Другое"
+    subject_comb = st.selectbox(
+        "Профильные предметы ЕНТ", 
+        [
+            "Математика + Физика",
+            "Математика + Информатика",
+            "Математика + География",
+            "Биология + Химия",
+            "Биология + География",
+            "История + Иностранный язык",
+            "История + Основы права (ЧОП)",
+            "География + Иностранный язык",
+            "Химия + Физика",
+            "Язык и литература",
+            "Творческий экзамен",
+            "Другое / Пользовательский вариант"
+        ],
+        key="subject_comb"
     )
+    
+    # Если выбрано "Другое", показываем текстовое поле для ручного ввода
+    if subject_comb == "Другое / Пользовательский вариант":
+        subjects = st.text_input(
+            "Введите свои профильные предметы вручную:",
+            key="subjects_custom_input"
+        )
+    else:
+        subjects = subject_comb
+
     financial_status = st.text_input(
         "Финансовое состояние / Бюджет на обучение (например: только грант, средний доход)",
         key="financial_status"
@@ -133,20 +154,26 @@ if submitted:
         * **Профиль:** 11 класс | Математика + Физика 
         * **Целевые баллы:** ЕНТ: 120 | IELTS: 6.0 | SAT: 1200
         * **Финансовый статус:** Расчет на государственный грант
-        * **Рекомендации и целевые вузы:**
-          1. **Главная цель по ЕНТ:** Набрать 120+ баллов для получения государственного гранта на IT-специальности.
-          2. **Рекомендуемые вузы:** 
-             * **КБТУ (Казахско-Британский технический университет)** — лучший выбор для IT и программной инженерии.
-             * **СДУ (Suleyman Demirel University)** — сильная школа математики и программирования.
-             * **Satbayev University** — отличные инженерные гранты.
-          3. **План подготовки:** Фокус на сложные задачи второй части математики и разделы механики в физике. Участие в хакатоне **SPARK Startup Battle** для портфолио!
+        
+        #### 📌 Шаги подготовки
+        * Углубленное изучение разделов математического анализа и механики в физике.
+        * Регулярная сдача пробных тестов ЕНТ для отслеживания прогресса (цель — стабильно 120+).
+        * Подготовка к сертификату IELTS до уровня B2 (6.0) для расширения возможностей.
+
+        #### 🎓 Рекомендуемые вузы
+        * **КБТУ (Казахско-Британский технический университет)** — лучший выбор для IT и программной инженерии.
+        * **СДУ (Suleyman Demirel University)** — сильная школа математики и программирования.
+        * **Satbayev University** — отличные инженерные гранты.
+
+        #### 💡 Полезные советы
+        * Участвуйте в хакатоне **SPARK Startup Battle** для усиления портфолио и получения грантовых преимуществ.
+        * Следите за сроками подачи документов на государственные гранты в июле.
         """)
-    elif not cloud_api_key and not user_api_key:
-        st.error("⚠️ Внимание: Streamlit Cloud не обнаружил ключ 'GEMINI_API_KEY' в настройках Secrets! Проверьте вкладку Settings -> Secrets в панели управления.")
+    elif not api_key:
+        st.error("⚠️ Ошибка конфигурации: API-ключ не найден в настройках Streamlit Secrets.")
     else:
-        active_key = cloud_api_key if cloud_api_key else user_api_key
         with st.spinner("🤖 ИИ анализирует данные и строит индивидуальный трек..."):
-            ai = FuturePathAI(api_key=active_key)
+            ai = FuturePathAI(api_key=api_key)
             user_profile = {
                 "track": track,
                 "grade": grade,
@@ -163,4 +190,19 @@ if submitted:
                 st.error(f"Ошибка от Gemini API: {result['error']}")
             else:
                 st.success("🎉 Ваша дорожная карта готова!")
-                st.json(result)
+                
+                # Красивый бизнес-интерфейс вместо сырого JSON
+                if "steps" in result and result["steps"]:
+                    st.subheader("📌 Шаги подготовки")
+                    for step in result["steps"]:
+                        st.markdown(f"* {step}")
+                
+                if "universities" in result and result["universities"]:
+                    st.subheader("🎓 Рекомендуемые вузы")
+                    for uni in result["universities"]:
+                        st.markdown(f"* {uni}")
+                
+                if "advice" in result and result["advice"]:
+                    st.subheader("💡 Полезные советы")
+                    for adv in result["advice"]:
+                        st.markdown(f"* {adv}")
