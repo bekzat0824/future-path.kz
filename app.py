@@ -78,7 +78,7 @@ def toggle_demo():
 
 st.sidebar.checkbox("🚀 Демо-режим (для питча)", key="demo_mode", on_change=toggle_demo)
 
-# Словари интерфейса
+# Полный словарь перевода всего интерфейса
 ui_texts = {
     "Русский": {
         "title": "🎓 BolashaqZholy.kz",
@@ -93,7 +93,21 @@ ui_texts = {
         "chat_hdr": "💬 Задать уточняющий вопрос ИИ",
         "chat_ph": "Спросите что угодно о поступлении...",
         "cal_btn": "📅 Скачать календарь дедлайнов (.ics)",
-        "rep_btn": "📄 Скачать полный отчет (.txt)"
+        "rep_btn": "📄 Скачать полный отчет (.txt)",
+        # Поля формы
+        "track_lbl": "Трек:",
+        "grade_lbl": "Класс / Статус:",
+        "undecided_lbl": "🧩 Я ещё не определился с профессией / предметами",
+        "inclination_lbl": "Что вам ближе всего?",
+        "inclination_opts": ["Логика, цифры, программирование", "Биология, медицина, природа", "Общение, языки, творчество, бизнес"],
+        "subj_lbl": "Профильные предметы ЕНТ:",
+        "fin_lbl": "Финансовые цели:",
+        "fin_opts": ["Рассчитываю только на грант", "Возможно платное обучение", "Зарубежные стипендии"],
+        "unt_lbl": "Целевой балл ЕНТ:",
+        "ielts_lbl": "Целевой IELTS (0 если не нужен):",
+        "sat_lbl": "Целевой SAT (0 если не нужен):",
+        "interests_lbl": "Дополнительные интересы и хобби:",
+        "interests_ph": "IT, стартапы, технологии"
     },
     "Қазақша": {
         "title": "🎓 BolashaqZholy.kz",
@@ -108,7 +122,21 @@ ui_texts = {
         "chat_hdr": "💬 AI-ға қосымша сұрақ қою",
         "chat_ph": "Оқуға түсу туралы сұраңыз...",
         "cal_btn": "📅 Күнтізбені жүктеп алу (.ics)",
-        "rep_btn": "📄 Толық есепті жүктеу (.txt)"
+        "rep_btn": "📄 Толық есепті жүктеу (.txt)",
+        # Поля формы
+        "track_lbl": "Трек:",
+        "grade_lbl": "Сынып / Мәртебе:",
+        "undecided_lbl": "🧩 Мамандық немесе пәндерді әлі таңдамадым",
+        "inclination_lbl": "Сізге қай бағыт жақынырақ?",
+        "inclination_opts": ["Логика, сандар, бағдарламалау", "Биология, медицина, табиғат", "Қарым-қатынас, тілдер, өнер, бизнес"],
+        "subj_lbl": "ҰБТ бейіндік пәндері:",
+        "fin_lbl": "Қаржылық мақсаттар:",
+        "fin_opts": ["Тек грантқа үміттенемін", "Ақылы оқу мүмкіндігі бар", "Шетелдік стипендиялар"],
+        "unt_lbl": "ҰБТ мақсатты балы:",
+        "ielts_lbl": "Мақсатты IELTS (керек болмаса 0):",
+        "sat_lbl": "Мақсатты SAT (керек болмаса 0):",
+        "interests_lbl": "Қосымша қызығушылықтар мен хобби:",
+        "interests_ph": "IT, стартаптар, технологиялар"
     },
     "English": {
         "title": "🎓 BolashaqZholy.kz",
@@ -123,7 +151,21 @@ ui_texts = {
         "chat_hdr": "💬 Ask AI a Follow-up Question",
         "chat_ph": "Ask anything about admissions...",
         "cal_btn": "📅 Download Deadlines Calendar (.ics)",
-        "rep_btn": "📄 Download Full Report (.txt)"
+        "rep_btn": "📄 Download Full Report (.txt)",
+        # Поля формы
+        "track_lbl": "Track:",
+        "grade_lbl": "Grade / Status:",
+        "undecided_lbl": "🧩 I haven't decided on a career / subjects yet",
+        "inclination_lbl": "What field interests you the most?",
+        "inclination_opts": ["Logic, numbers, programming", "Biology, medicine, nature", "Communication, languages, arts, business"],
+        "subj_lbl": "UNT Elective Subjects:",
+        "fin_lbl": "Financial Goals:",
+        "fin_opts": ["Relying only on a state grant", "Paid tuition is an option", "International scholarships"],
+        "unt_lbl": "Target UNT Score:",
+        "ielts_lbl": "Target IELTS (0 if not needed):",
+        "sat_lbl": "Target SAT (0 if not needed):",
+        "interests_lbl": "Additional Interests & Hobbies:",
+        "interests_ph": "IT, startups, tech"
     }
 }
 
@@ -155,20 +197,17 @@ elif st.session_state.page == "form":
     st.subheader(f"{t['form_hdr']}: {st.session_state.user_name}")
     
     with st.form("student_form"):
-        track = st.selectbox("Трек:", ["KZ (ЕНТ / Гранты)", "International (Зарубежные вузы)"])
-        grade = st.selectbox("Класс / Статус:", ["10 класс", "11 класс / Колледж"])
+        track = st.selectbox(t["track_lbl"], ["KZ (ЕНТ / Гранты)", "International (Зарубежные вузы)"])
+        grade = st.selectbox(t["grade_lbl"], ["10 класс", "11 класс / Колледж"])
         
-        # Блок профориентации
-        undecided = st.checkbox("🧩 Я ещё не определился с профессией / предметами")
+        # Динамический блок профориентации
+        undecided = st.checkbox(t["undecided_lbl"])
         inclination = ""
         if undecided:
-            inclination = st.radio(
-                "Что вам ближе всего?",
-                ["Логика, цифры, программирование", "Биология, медицина, природа", "Общение, языки, творчество, бизнес"]
-            )
+            inclination = st.radio(t["inclination_lbl"], t["inclination_opts"])
         
         subject_comb = st.selectbox(
-            "Профильные предметы ЕНТ:", 
+            t["subj_lbl"], 
             [
                 "Математика + Физика", "Математика + Информатика", "Математика + География",
                 "Биология + Химия", "Биология + География", "История + Иностранный язык",
@@ -176,12 +215,12 @@ elif st.session_state.page == "form":
             ]
         )
         subjects = subject_comb
-        financial_status = st.selectbox("Финансовые цели:", ["Рассчитываю только на грант", "Возможно платное обучение", "Зарубежные стипендии"])
+        financial_status = st.selectbox(t["fin_lbl"], t["fin_opts"])
         
-        target_unt = st.slider("Целевой балл ЕНТ:", 50, 140, 115)
-        target_ielts = st.number_input("Целевой IELTS (0 если не нужен):", 0.0, 9.0, 6.0, step=0.5)
-        target_sat = st.number_input("Целевой SAT (0 если не нужен):", 0, 1600, 1200, step=10)
-        interests = st.text_area("Дополнительные интересы и хобби:", "IT, стартапы, технологии")
+        target_unt = st.slider(t["unt_lbl"], 50, 140, 115)
+        target_ielts = st.number_input(t["ielts_lbl"], 0.0, 9.0, 6.0, step=0.5)
+        target_sat = st.number_input(t["sat_lbl"], 0, 1600, 1200, step=10)
+        interests = st.text_area(t["interests_lbl"], t["interests_ph"])
         
         submitted = st.form_submit_button(t["gen_btn"])
         
