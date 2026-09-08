@@ -1,9 +1,54 @@
 import streamlit as st
+import pandas as pd
 from futurepath_ai import FuturePathAI
 
 st.set_page_config(page_title="FuturePath.kz", page_icon="🎓", layout="centered")
 
-# --- Получение API ключа ---
+# --- Функция генерации .ics файла (Календарь) ---
+def create_ics_file(steps):
+    ics_lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//FuturePath.kz//Admissions Roadmap//RU",
+        "CALSCALE:GREGORIAN"
+    ]
+    for idx, step in enumerate(steps, 1):
+        period = step.get('period', f'Шаг {idx}') if isinstance(step, dict) else f'Шаг {idx}'
+        action = step.get('action', str(step)) if isinstance(step, dict) else str(step)
+        ics_lines.extend([
+            "BEGIN:VEVENT",
+            f"SUMMARY:FuturePath: {period}",
+            f"DESCRIPTION:{action}",
+            "STATUS:CONFIRMED",
+            "END:VEVENT"
+        ])
+    ics_lines.append("END:VCALENDAR")
+    return "\n".join(ics_lines)
+
+# --- Функция генерации Отчета для скачивания ---
+def create_report_txt(user_name, res):
+    text = f"=========================================\n"
+    text += f" FUTUREPATH.KZ — ДОРОЖНАЯ КАРТА ДЛЯ: {user_name.upper()}\n"
+    text += f"=========================================\n\n"
+    text += f"📊 Оценка шансов на грант: {res.get('grant_chance_percent', 'N/A')}% ({res.get('grant_status_text', '')})\n"
+    if res.get('recommended_direction'):
+        text += f"🎯 Рекомендуемое направление: {res.get('recommended_direction')}\n"
+    text += "\n-----------------------------------------\n📌 ШАГИ ПОДГОТОВКИ:\n-----------------------------------------\n"
+    for s in res.get('steps', []):
+        if isinstance(s, dict):
+            text += f"• [{s.get('period')}] {s.get('action')}\n"
+        else:
+            text += f"• {s}\n"
+    text += "\n-----------------------------------------\n🎓 РЕКОМЕНДУЕМЫЕ ВУЗЫ:\n-----------------------------------------\n"
+    for u in res.get('universities', []):
+        if isinstance(u, dict):
+            text += f"• {u.get('name')} ({u.get('city')}) | Балл: {u.get('grant_cutoff')} | Грант: {u.get('grant_chance')}\n  Описание: {u.get('description')}\n"
+    text += "\n-----------------------------------------\n💡 СОВЕТЫ:\n-----------------------------------------\n"
+    for a in res.get('advice', []):
+        text += f"• {a}\n"
+    return text
+
+# --- API Ключ ---
 if "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
 elif "gemini_api_key" in st.secrets:
@@ -11,7 +56,7 @@ elif "gemini_api_key" in st.secrets:
 else:
     api_key = None
 
-# --- Настройки сессии ---
+# --- Инициализация состояния ---
 if "page" not in st.session_state:
     st.session_state.page = "welcome"
 if "demo_mode" not in st.session_state:
@@ -23,64 +68,62 @@ if "roadmap_result" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# --- Боковая панель: Язык и Режим ---
+# --- Боковая панель ---
 st.sidebar.header("⚙️ Настройки / Settings")
 lang = st.sidebar.selectbox("🌐 Язык / Тіл / Language", ["Русский", "Қазақша", "English"])
 
 def toggle_demo():
     if st.session_state.demo_mode:
         st.session_state.user_name = "Айсултан"
-        st.session_state.track = "KZ (ЕНТ / Гранты)"
-        st.session_state.grade = "11 класс / Колледж"
-        st.session_state.subject_comb = "Математика + Физика"
-        st.session_state.financial_status = "Рассчитываем на грант"
-        st.session_state.target_unt = 120
-        st.session_state.target_ielts = 6.0
-        st.session_state.target_sat = 1200
-        st.session_state.interests = "IT, разработка ПО"
 
 st.sidebar.checkbox("🚀 Демо-режим (для питча)", key="demo_mode", on_change=toggle_demo)
 
-# Словари для мультиязычности UI
+# Словари интерфейса
 ui_texts = {
     "Русский": {
         "title": "🎓 FuturePath.kz",
         "subtitle": "Персональный AI-навигатор по поступлению в вузы",
         "welcome_hdr": "Привет! Давайте познакомимся 👋",
-        "welcome_desc": "Я помогу тебе построить пошаговый план подготовки, выбрать профильные предметы и подобрать подходящие университеты.",
+        "welcome_desc": "Поможем построить пошаговый план, оценить шансы на грант и выбрать идеальный университет.",
         "name_label": "Как тебя зовут?",
         "next_btn": "Начать 🚀",
         "form_hdr": "Анкета абитуриента",
         "gen_btn": "🚀 Сгенерировать дорожную карту",
-        "restart_btn": "🔄 Заполнить заново",
+        "restart_btn": "🔄 Начать заново",
         "chat_hdr": "💬 Задать уточняющий вопрос ИИ",
-        "chat_ph": "Например: Каковы шансы получить грант с 110 баллами?"
+        "chat_ph": "Спросите что угодно о поступлении...",
+        "cal_btn": "📅 Скачать календарь дедлайнов (.ics)",
+        "rep_btn": "📄 Скачать полный отчет (.txt)"
     },
     "Қазақша": {
         "title": "🎓 FuturePath.kz",
         "subtitle": "Оқуға түсуге арналған жеке AI-навигатор",
         "welcome_hdr": "Сәлем! Танысып өтейік 👋",
-        "welcome_desc": "Мен саған дайындық жоспарын құруға, пәндерді таңдауға және ЖОО табуға көмектесемін.",
+        "welcome_desc": "Дайындық жоспарын құруға, грант мүмкіндігін бағалауға және ЖОО таңдауға көмектесеміз.",
         "name_label": "Есімің кім?",
         "next_btn": "Бастау 🚀",
         "form_hdr": "Талапкер анкетасы",
         "gen_btn": "🚀 Жол картасын жасау",
-        "restart_btn": "🔄 Қайта толтыру",
+        "restart_btn": "🔄 Қайта бастау",
         "chat_hdr": "💬 AI-ға қосымша сұрақ қою",
-        "chat_ph": "Мысалы: 110 баллмен грант алу мүмкіндігі қандай?"
+        "chat_ph": "Оқуға түсу туралы сұраңыз...",
+        "cal_btn": "📅 Күнтізбені жүктеп алу (.ics)",
+        "rep_btn": "📄 Толық есепті жүктеу (.txt)"
     },
     "English": {
         "title": "🎓 FuturePath.kz",
         "subtitle": "Personal AI Navigator for University Admissions",
-        "welcome_hdr": "Hello! Let's get to know you 👋",
-        "welcome_desc": "I will help you build a step-by-step preparation plan, select subjects, and find the right universities.",
+        "welcome_hdr": "Hello! Let's get started 👋",
+        "welcome_desc": "We will help you build a preparation roadmap, calculate grant odds, and select universities.",
         "name_label": "What is your name?",
         "next_btn": "Start 🚀",
         "form_hdr": "Applicant Form",
         "gen_btn": "🚀 Generate Roadmap",
         "restart_btn": "🔄 Start Over",
         "chat_hdr": "💬 Ask AI a Follow-up Question",
-        "chat_ph": "Example: What are the chances for a scholarship with 110 points?"
+        "chat_ph": "Ask anything about admissions...",
+        "cal_btn": "📅 Download Deadlines Calendar (.ics)",
+        "rep_btn": "📄 Download Full Report (.txt)"
     }
 }
 
@@ -91,50 +134,54 @@ st.caption(t["subtitle"])
 st.markdown("---")
 
 # ==========================================
-# ОКНО 1: Приветствие и знакомство
+# ОКНО 1: Приветствие
 # ==========================================
 if st.session_state.page == "welcome":
     st.subheader(t["welcome_hdr"])
     st.write(t["welcome_desc"])
-    
     name_input = st.text_input(t["name_label"], value=st.session_state.user_name)
-    
     if st.button(t["next_btn"]):
         if name_input.strip():
             st.session_state.user_name = name_input.strip()
             st.session_state.page = "form"
             st.rerun()
         else:
-            st.warning("Пожалуйста, введите имя!")
+            st.warning("Введите имя!")
 
 # ==========================================
-# ОКНО 2: Заполнение анкеты
+# ОКНО 2: Анкета + Профориентатор
 # ==========================================
 elif st.session_state.page == "form":
-    st.subheader(f"{t['form_hdr']} ({st.session_state.user_name})")
+    st.subheader(f"{t['form_hdr']}: {st.session_state.user_name}")
     
     with st.form("student_form"):
-        track = st.selectbox("Трек:", ["KZ (ЕНТ / Гранты)", "International (Зарубежные вузы)"], key="track")
-        grade = st.selectbox("Класс / Статус:", ["10 класс", "11 класс / Колледж"], key="grade")
+        track = st.selectbox("Трек:", ["KZ (ЕНТ / Гранты)", "International (Зарубежные вузы)"])
+        grade = st.selectbox("Класс / Статус:", ["10 класс", "11 класс / Колледж"])
+        
+        # --- Блок Профориентации ---
+        undecided = st.checkbox("🧩 Я ещё не определился с профессией / предметами")
+        inclination = ""
+        if undecided:
+            inclination = st.radio(
+                "Что вам ближе всего?",
+                ["Логика, цифры, программирование", "Биология, медицина, природа", "Общение, языки, творчество, бизнес"]
+            )
         
         subject_comb = st.selectbox(
             "Профильные предметы ЕНТ:", 
             [
                 "Математика + Физика", "Математика + Информатика", "Математика + География",
                 "Биология + Химия", "Биология + География", "История + Иностранный язык",
-                "История + Основы права (ЧОП)", "География + Иностранный язык", "Химия + Физика",
-                "Язык и литература", "Творческий экзамен", "Другое / Пользовательский вариант"
-            ],
-            key="subject_comb"
+                "История + ЧОП", "География + Иностранный язык", "Творческий экзамен", "Другое"
+            ]
         )
+        subjects = subject_comb
+        financial_status = st.selectbox("Финансовые цели:", ["Рассчитываю только на грант", "Возможно платное обучение", "Зарубежные стипендии"])
         
-        subjects = st.text_input("Ваш вариант предметов:", key="subjects_custom") if subject_comb == "Другое / Пользовательский вариант" else subject_comb
-        financial_status = st.text_input("Бюджет / Финансовые цели:", key="financial_status")
-        
-        target_unt = st.slider("Желаемый балл ЕНТ:", 50, 140, key="target_unt")
-        target_ielts = st.number_input("Целевой IELTS (0 если не сдаете):", 0.0, 9.0, step=0.5, key="target_ielts")
-        target_sat = st.number_input("Целевой SAT (0 если не сдаете):", 0, 1600, step=10, key="target_sat")
-        interests = st.text_area("Интересы и специальности:", key="interests")
+        target_unt = st.slider("Целевой балл ЕНТ:", 50, 140, 115)
+        target_ielts = st.number_input("Целевой IELTS (0 если не нужен):", 0.0, 9.0, 6.0, step=0.5)
+        target_sat = st.number_input("Целевой SAT (0 если не нужен):", 0, 1600, 1200, step=10)
+        interests = st.text_area("Дополнительные интересы и хобби:", "IT, стартапы, технологии")
         
         submitted = st.form_submit_button(t["gen_btn"])
         
@@ -143,6 +190,8 @@ elif st.session_state.page == "form":
             "name": st.session_state.user_name,
             "track": track,
             "grade": grade,
+            "undecided": undecided,
+            "inclination": inclination,
             "subjects": subjects,
             "financial_status": financial_status,
             "target_unt": target_unt,
@@ -154,69 +203,111 @@ elif st.session_state.page == "form":
         st.rerun()
 
 # ==========================================
-# ОКНО 3: Дорожная карта + Чат с ИИ
+# ОКНО 3: Результаты и Все Фичи
 # ==========================================
 elif st.session_state.page == "roadmap":
-    col1, col2 = st.columns([3, 1])
-    col1.subheader(f"🎓 Карта для: {st.session_state.user_name}")
-    if col2.button(t["restart_btn"]):
+    col_t, col_r = st.columns([3, 1])
+    col_t.subheader(f"🎓 Карта поступления: {st.session_state.user_name}")
+    if col_r.button(t["restart_btn"]):
         st.session_state.page = "welcome"
         st.session_state.chat_history = []
         st.session_state.roadmap_result = None
         st.rerun()
 
-    # Генерация или загрузка из состояния
+    # Демо или Реальный запрос
     if st.session_state.roadmap_result is None:
         if st.session_state.demo_mode:
             st.session_state.roadmap_result = {
+                "grant_chance_percent": 85,
+                "grant_status_text": "Высокая вероятность получения гранта",
+                "recommended_direction": "Software Engineering / Computer Science",
                 "steps": [
-                    {"period": "Сентябрь - Декабрь", "action": "Подготовка по Математике и Физике, закрытие слабых тем."},
-                    {"period": "Январь - Март", "action": "Сдача январского ЕНТ, интенсивный прореш тестов НЦТ."}
+                    {"period": "Сентябрь - Ноябрь 2026", "action": "Интенсивная подготовка по Математике и Физике."},
+                    {"period": "Декабрь 2026", "action": "Пробный ЕНТ. Проверка слабых тем."},
+                    {"period": "Январь 2027", "action": "Сдача официального январского ЕНТ."},
+                    {"period": "Июль 2027", "action": "Подача документов на конкурс грантов."}
                 ],
                 "universities": [
-                    {"name": "КБТУ", "city": "Алматы", "description": "Топовый технический вуз, сильный IT-факультет."},
-                    {"name": "Satbayev University", "city": "Алматы", "description": "Большое количество государственных грантов."}
+                    {"name": "КБТУ", "city": "Алматы", "grant_cutoff": "115+", "tuition": "~1.8 млн ₸", "dorm": "Есть", "grant_chance": "Высокий", "description": "Флагман IT-образования в РК."},
+                    {"name": "SDU", "city": "Каскелен", "grant_cutoff": "105+", "tuition": "~1.5 млн ₸", "dorm": "Есть", "grant_chance": "Высокий", "description": "Сильный IT-факультет и англоязычное обучение."},
+                    {"name": "Satbayev University", "city": "Алматы", "grant_cutoff": "95+", "tuition": "~1.1 млн ₸", "dorm": "Есть", "grant_chance": "Очень высокий", "description": "Большое количество государственных грантов."}
                 ],
-                "advice": ["Следите за сроками подачи документов на грант в июле.", "Участвуйте в олимпиадах для получения скидок."]
+                "advice": ["Обязательно участвуйте в мартовском и майском ЕНТ.", "Заранее подготовьте справки 075/у."]
             }
         elif api_key:
-            with st.spinner("🤖 ИИ генерирует персональный план..."):
+            with st.spinner("🤖 ИИ генерирует аналитику и дорожную карту..."):
                 ai = FuturePathAI(api_key=api_key)
                 st.session_state.roadmap_result = ai.generate_roadmap(st.session_state.user_profile, lang=lang)
 
     res = st.session_state.roadmap_result
 
     if res and "error" not in res:
-        # Шаги
-        if "steps" in res:
-            st.subheader("📌 Шаги подготовки")
-            for step in res["steps"]:
-                if isinstance(step, dict):
-                    st.markdown(f"* **{step.get('period', '')}** — {step.get('action', '')}")
-                else:
-                    st.markdown(f"* {step}")
+        # --- 1. Шанс на грант ---
+        chance_pct = res.get("grant_chance_percent", 70)
+        status_txt = res.get("grant_status_text", "Средние шансы")
         
-        # Вузы
-        if "universities" in res:
-            st.subheader("🎓 Рекомендуемые вузы")
-            for uni in res["universities"]:
-                if isinstance(uni, dict):
-                    city = f" ({uni.get('city')})" if uni.get("city") else ""
-                    st.markdown(f"* **{uni.get('name')}**{city} — {uni.get('description')}")
-                else:
-                    st.markdown(f"* {uni}")
-
-        # Советы
-        if "advice" in res:
-            st.subheader("💡 Полезные советы")
-            for adv in res["advice"]:
-                st.markdown(f"* {adv}")
+        st.markdown("### 📊 Оценка шансов на грант")
+        col_m1, col_m2 = st.columns([1, 2])
+        col_m1.metric("Вероятность", f"{chance_pct}%")
+        col_m2.write(f"**Статус:** {status_txt}")
+        st.progress(chance_pct / 100)
+        
+        if res.get("recommended_direction"):
+            st.info(f"🎯 **Рекомендуемое направление:** {res.get('recommended_direction')}")
 
         st.markdown("---")
-        # --- Блок мини-чата с ИИ ---
-        st.subheader(t["chat_hdr"])
+
+        # --- 2. Сравнительная Таблица Вузов ---
+        if "universities" in res and res["universities"]:
+            st.markdown("### ⚔️ Сравнительная матрица вузов")
+            unis = res["universities"]
+            if isinstance(unis, list) and len(unis) > 0 and isinstance(unis[0], dict):
+                df = pd.DataFrame(unis)
+                # Переименовываем колонки для красивого вида
+                rename_dict = {
+                    "name": "Вуз", "city": "Город", "grant_cutoff": "Проходной балл",
+                    "tuition": "Стоимость", "dorm": "Общежитие", "grant_chance": "Шанс на грант",
+                    "description": "Описание"
+                }
+                df = df.rename(columns=rename_dict)
+                st.dataframe(df, use_container_width=True)
+            else:
+                for u in unis:
+                    st.markdown(f"* {u}")
+
+        # --- 3. Шаги Подготовки ---
+        if "steps" in res:
+            st.markdown("### 📌 Персональные шаги подготовки")
+            for step in res["steps"]:
+                if isinstance(step, dict):
+                    st.markdown(f"* **{step.get('period')}** — {step.get('action')}")
+                else:
+                    st.markdown(f"* {step}")
+
+        # --- 4. Кнопки экспорта (Календарь и Отчет) ---
+        st.markdown("### 📥 Экспорт и интеграции")
+        col_dl1, col_dl2 = st.columns(2)
         
-        # Отображение истории вопросов
+        ics_data = create_ics_file(res.get("steps", []))
+        col_dl1.download_button(
+            label=t["cal_btn"],
+            data=ics_data,
+            file_name="FuturePath_Deadlines.ics",
+            mime="text/calendar"
+        )
+        
+        report_data = create_report_txt(st.session_state.user_name, res)
+        col_dl2.download_button(
+            label=t["rep_btn"],
+            data=report_data,
+            file_name=f"FuturePath_Report_{st.session_state.user_name}.txt",
+            mime="text/plain"
+        )
+
+        st.markdown("---")
+
+        # --- 5. Чат с ИИ ---
+        st.subheader(t["chat_hdr"])
         for msg in st.session_state.chat_history:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
@@ -230,7 +321,7 @@ elif st.session_state.page == "roadmap":
             with st.chat_message("assistant"):
                 with st.spinner("..."):
                     if st.session_state.demo_mode:
-                        answer = f"В демо-режиме: Уважаемый(ая) {st.session_state.user_name}, с баллами {st.session_state.user_profile.get('target_unt')} у вас высокие шансы на получение гранта в выбранных вузах!"
+                        answer = f"В демо-режиме: {st.session_state.user_name}, с вашей целевой планкой шанс прохождения в КБТУ и SDU превышает 80%!"
                     elif api_key:
                         ai = FuturePathAI(api_key=api_key)
                         answer = ai.ask_followup(st.session_state.user_profile, res, user_question, lang=lang)
@@ -239,4 +330,4 @@ elif st.session_state.page == "roadmap":
                     st.write(answer)
                     st.session_state.chat_history.append({"role": "assistant", "content": answer})
     else:
-        st.error("Ошибка получения данных от ИИ. Проверьте настройки ключа.")
+        st.error("Ошибка при получении данных от ИИ.")
