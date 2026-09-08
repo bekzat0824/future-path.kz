@@ -2,14 +2,14 @@ import streamlit as st
 import pandas as pd
 from futurepath_ai import FuturePathAI
 
-st.set_page_config(page_title="FuturePath.kz", page_icon="🎓", layout="centered")
+st.set_page_config(page_title="BolashaqZholy.kz", page_icon="🎓", layout="centered")
 
-# --- Функция генерации .ics файла (Календарь) ---
+# --- Генерация .ics файла (Календарь дедлайнов) ---
 def create_ics_file(steps):
     ics_lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//FuturePath.kz//Admissions Roadmap//RU",
+        "PRODID:-//BolashaqZholy.kz//Admissions Roadmap//RU",
         "CALSCALE:GREGORIAN"
     ]
     for idx, step in enumerate(steps, 1):
@@ -17,7 +17,7 @@ def create_ics_file(steps):
         action = step.get('action', str(step)) if isinstance(step, dict) else str(step)
         ics_lines.extend([
             "BEGIN:VEVENT",
-            f"SUMMARY:FuturePath: {period}",
+            f"SUMMARY:BolashaqZholy: {period}",
             f"DESCRIPTION:{action}",
             "STATUS:CONFIRMED",
             "END:VEVENT"
@@ -25,10 +25,10 @@ def create_ics_file(steps):
     ics_lines.append("END:VCALENDAR")
     return "\n".join(ics_lines)
 
-# --- Функция генерации Отчета для скачивания ---
+# --- Генерация текстового отчета ---
 def create_report_txt(user_name, res):
     text = f"=========================================\n"
-    text += f" FUTUREPATH.KZ — ДОРОЖНАЯ КАРТА ДЛЯ: {user_name.upper()}\n"
+    text += f" BOLASHAQZHOLY.KZ — ДОРОЖНАЯ КАРТА: {user_name.upper()}\n"
     text += f"=========================================\n\n"
     text += f"📊 Оценка шансов на грант: {res.get('grant_chance_percent', 'N/A')}% ({res.get('grant_status_text', '')})\n"
     if res.get('recommended_direction'):
@@ -48,7 +48,7 @@ def create_report_txt(user_name, res):
         text += f"• {a}\n"
     return text
 
-# --- API Ключ ---
+# --- Настройка API Ключа ---
 if "GEMINI_API_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_API_KEY"]
 elif "gemini_api_key" in st.secrets:
@@ -56,7 +56,7 @@ elif "gemini_api_key" in st.secrets:
 else:
     api_key = None
 
-# --- Инициализация состояния ---
+# --- Настройки сессии ---
 if "page" not in st.session_state:
     st.session_state.page = "welcome"
 if "demo_mode" not in st.session_state:
@@ -69,7 +69,7 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 # --- Боковая панель ---
-st.sidebar.header("⚙️ Настройки / Settings")
+st.sidebar.header("⚙️ Настройки / Баптаулар")
 lang = st.sidebar.selectbox("🌐 Язык / Тіл / Language", ["Русский", "Қазақша", "English"])
 
 def toggle_demo():
@@ -81,14 +81,14 @@ st.sidebar.checkbox("🚀 Демо-режим (для питча)", key="demo_mo
 # Словари интерфейса
 ui_texts = {
     "Русский": {
-        "title": "🎓 FuturePath.kz",
+        "title": "🎓 BolashaqZholy.kz",
         "subtitle": "Персональный AI-навигатор по поступлению в вузы",
         "welcome_hdr": "Привет! Давайте познакомимся 👋",
-        "welcome_desc": "Поможем построить пошаговый план, оценить шансы на грант и выбрать идеальный университет.",
+        "welcome_desc": "Bolashaq Zholy поможет построить пошаговый план, оценить шансы на грант и подобрать идеальный университет.",
         "name_label": "Как тебя зовут?",
         "next_btn": "Начать 🚀",
         "form_hdr": "Анкета абитуриента",
-        "gen_btn": "🚀 Сгенерировать дорожную карту",
+        "gen_btn": "🚀 Определить Bolashaq Zholy",
         "restart_btn": "🔄 Начать заново",
         "chat_hdr": "💬 Задать уточняющий вопрос ИИ",
         "chat_ph": "Спросите что угодно о поступлении...",
@@ -96,14 +96,14 @@ ui_texts = {
         "rep_btn": "📄 Скачать полный отчет (.txt)"
     },
     "Қазақша": {
-        "title": "🎓 FuturePath.kz",
-        "subtitle": "Оқуға түсуге арналған жеке AI-навигатор",
+        "title": "🎓 BolashaqZholy.kz",
+        "subtitle": "Болашаққа жол сілтейтін AI-навигатор",
         "welcome_hdr": "Сәлем! Танысып өтейік 👋",
-        "welcome_desc": "Дайындық жоспарын құруға, грант мүмкіндігін бағалауға және ЖОО таңдауға көмектесеміз.",
+        "welcome_desc": "Bolashaq Zholy саған дайындық жоспарын құруға, грант мүмкіндігін бағалауға және ЖОО таңдауға көмектеседі.",
         "name_label": "Есімің кім?",
         "next_btn": "Бастау 🚀",
         "form_hdr": "Талапкер анкетасы",
-        "gen_btn": "🚀 Жол картасын жасау",
+        "gen_btn": "🚀 Болашақ жолын анықтау",
         "restart_btn": "🔄 Қайта бастау",
         "chat_hdr": "💬 AI-ға қосымша сұрақ қою",
         "chat_ph": "Оқуға түсу туралы сұраңыз...",
@@ -111,14 +111,14 @@ ui_texts = {
         "rep_btn": "📄 Толық есепті жүктеу (.txt)"
     },
     "English": {
-        "title": "🎓 FuturePath.kz",
+        "title": "🎓 BolashaqZholy.kz",
         "subtitle": "Personal AI Navigator for University Admissions",
         "welcome_hdr": "Hello! Let's get started 👋",
-        "welcome_desc": "We will help you build a preparation roadmap, calculate grant odds, and select universities.",
+        "welcome_desc": "Bolashaq Zholy will help you build a preparation roadmap, calculate grant odds, and select universities.",
         "name_label": "What is your name?",
         "next_btn": "Start 🚀",
         "form_hdr": "Applicant Form",
-        "gen_btn": "🚀 Generate Roadmap",
+        "gen_btn": "🚀 Generate Bolashaq Path",
         "restart_btn": "🔄 Start Over",
         "chat_hdr": "💬 Ask AI a Follow-up Question",
         "chat_ph": "Ask anything about admissions...",
@@ -149,7 +149,7 @@ if st.session_state.page == "welcome":
             st.warning("Введите имя!")
 
 # ==========================================
-# ОКНО 2: Анкета + Профориентатор
+# ОКНО 2: Анкета + Профориентация
 # ==========================================
 elif st.session_state.page == "form":
     st.subheader(f"{t['form_hdr']}: {st.session_state.user_name}")
@@ -158,7 +158,7 @@ elif st.session_state.page == "form":
         track = st.selectbox("Трек:", ["KZ (ЕНТ / Гранты)", "International (Зарубежные вузы)"])
         grade = st.selectbox("Класс / Статус:", ["10 класс", "11 класс / Колледж"])
         
-        # --- Блок Профориентации ---
+        # Блок профориентации
         undecided = st.checkbox("🧩 Я ещё не определился с профессией / предметами")
         inclination = ""
         if undecided:
@@ -203,18 +203,18 @@ elif st.session_state.page == "form":
         st.rerun()
 
 # ==========================================
-# ОКНО 3: Результаты и Все Фичи
+# ОКНО 3: Результаты и Дорожная карта
 # ==========================================
 elif st.session_state.page == "roadmap":
     col_t, col_r = st.columns([3, 1])
-    col_t.subheader(f"🎓 Карта поступления: {st.session_state.user_name}")
+    col_t.subheader(f"🎓 Карта: {st.session_state.user_name}")
     if col_r.button(t["restart_btn"]):
         st.session_state.page = "welcome"
         st.session_state.chat_history = []
         st.session_state.roadmap_result = None
         st.rerun()
 
-    # Демо или Реальный запрос
+    # Генерация данных или Демо
     if st.session_state.roadmap_result is None:
         if st.session_state.demo_mode:
             st.session_state.roadmap_result = {
@@ -242,7 +242,7 @@ elif st.session_state.page == "roadmap":
     res = st.session_state.roadmap_result
 
     if res and "error" not in res:
-        # --- 1. Шанс на грант ---
+        # 1. Шанс на грант
         chance_pct = res.get("grant_chance_percent", 70)
         status_txt = res.get("grant_status_text", "Средние шансы")
         
@@ -257,13 +257,12 @@ elif st.session_state.page == "roadmap":
 
         st.markdown("---")
 
-        # --- 2. Сравнительная Таблица Вузов ---
+        # 2. Сравнительная Таблица Вузов
         if "universities" in res and res["universities"]:
             st.markdown("### ⚔️ Сравнительная матрица вузов")
             unis = res["universities"]
             if isinstance(unis, list) and len(unis) > 0 and isinstance(unis[0], dict):
                 df = pd.DataFrame(unis)
-                # Переименовываем колонки для красивого вида
                 rename_dict = {
                     "name": "Вуз", "city": "Город", "grant_cutoff": "Проходной балл",
                     "tuition": "Стоимость", "dorm": "Общежитие", "grant_chance": "Шанс на грант",
@@ -275,7 +274,7 @@ elif st.session_state.page == "roadmap":
                 for u in unis:
                     st.markdown(f"* {u}")
 
-        # --- 3. Шаги Подготовки ---
+        # 3. Шаги Подготовки
         if "steps" in res:
             st.markdown("### 📌 Персональные шаги подготовки")
             for step in res["steps"]:
@@ -284,7 +283,7 @@ elif st.session_state.page == "roadmap":
                 else:
                     st.markdown(f"* {step}")
 
-        # --- 4. Кнопки экспорта (Календарь и Отчет) ---
+        # 4. Скачивание файлов
         st.markdown("### 📥 Экспорт и интеграции")
         col_dl1, col_dl2 = st.columns(2)
         
@@ -292,7 +291,7 @@ elif st.session_state.page == "roadmap":
         col_dl1.download_button(
             label=t["cal_btn"],
             data=ics_data,
-            file_name="FuturePath_Deadlines.ics",
+            file_name="BolashaqZholy_Deadlines.ics",
             mime="text/calendar"
         )
         
@@ -300,13 +299,13 @@ elif st.session_state.page == "roadmap":
         col_dl2.download_button(
             label=t["rep_btn"],
             data=report_data,
-            file_name=f"FuturePath_Report_{st.session_state.user_name}.txt",
+            file_name=f"BolashaqZholy_Report_{st.session_state.user_name}.txt",
             mime="text/plain"
         )
 
         st.markdown("---")
 
-        # --- 5. Чат с ИИ ---
+        # 5. Чат с ИИ
         st.subheader(t["chat_hdr"])
         for msg in st.session_state.chat_history:
             with st.chat_message(msg["role"]):
