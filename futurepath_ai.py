@@ -12,27 +12,27 @@ class FuturePathAI:
 
     def generate_roadmap(self, user_profile: dict, lang: str = "Русский"):
         prompt = f"""
-        Ты — главная аналитическая система FuturePath.kz. Создай детальный план поступления для {user_profile.get('name', 'Абитуриент')}.
-        Язык ответа: {lang}.
+        Ты — главная аналитическая система платформы BolashaqZholy.kz. Создай детальную персональную карту поступления для {user_profile.get('name', 'Абитуриент')}.
+        Язык ответа: {lang}. Все описания, названия шагов и советы должны быть строго на языке: {lang}.
 
         Данные абитуриента:
         - Трек: {user_profile.get('track')}
         - Класс: {user_profile.get('grade')}
         - Не определился с профессией: {user_profile.get('undecided')}
-        - Предпочтения/Склонности: {user_profile.get('inclination')}
+        - Склонности/Предпочтения: {user_profile.get('inclination')}
         - Профильные предметы: {user_profile.get('subjects')}
         - Финансовый статус: {user_profile.get('financial_status')}
-        - Баллы ЕНТ (цель): {user_profile.get('target_unt')}
-        - IELTS: {user_profile.get('target_ielts')}, SAT: {user_profile.get('target_sat')}
-        - Интересы: {user_profile.get('interests')}
+        - Целевой балл ЕНТ: {user_profile.get('target_unt')}
+        - Целевой IELTS: {user_profile.get('target_ielts')}, SAT: {user_profile.get('target_sat')}
+        - Дополнительные интересы: {user_profile.get('interests')}
 
         Верни результат СТРОГО в формате JSON со следующей структурой:
         {{
-            "grant_chance_percent": 80,
-            "grant_status_text": "Высокий шанс на грант",
+            "grant_chance_percent": 85,
+            "grant_status_text": "Высокая вероятность получения гранта",
             "recommended_direction": "Рекомендуемое направление (если не определился)",
             "steps": [
-                {{"period": "Сентябрь - Октябрь 2026", "action": "Описание шага"}}
+                {{"period": "Сентябрь - Ноябрь", "action": "Описание шага"}}
             ],
             "universities": [
                 {{
@@ -56,14 +56,14 @@ class FuturePathAI:
 
     def ask_followup(self, user_profile: dict, context_roadmap: dict, question: str, lang: str = "Русский"):
         prompt = f"""
-        Ты — AI-консультант FuturePath.kz. Отвечай на языке: {lang}.
+        Ты — AI-консультант BolashaqZholy.kz. Отвечай на языке: {lang}.
         Абитуриент {user_profile.get('name')} задал уточняющий вопрос.
 
         Контекст профиля: {json.dumps(user_profile, ensure_ascii=False)}
         Карта: {json.dumps(context_roadmap, ensure_ascii=False)}
         Вопрос: {question}
 
-        Ответь кратко и полезно (3-4 предложения).
+        Ответь кратко, четко и дружелюбно (3-4 предложения).
         """
         try:
             response = self.chat_model.generate_content(prompt)
