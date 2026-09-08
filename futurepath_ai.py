@@ -12,23 +12,41 @@ class FuturePathAI:
 
     def generate_roadmap(self, user_profile: dict, lang: str = "Русский"):
         prompt = f"""
-        Создай персонализированную дорожную карту поступления в вуз для абитуриента по имени {user_profile.get('name', 'Абитуриент')}.
-        Язык ответа: {lang}. Все описания, названия шагов и советы должны быть строго на языке: {lang}.
+        Ты — главная аналитическая система FuturePath.kz. Создай детальный план поступления для {user_profile.get('name', 'Абитуриент')}.
+        Язык ответа: {lang}.
 
         Данные абитуриента:
         - Трек: {user_profile.get('track')}
         - Класс: {user_profile.get('grade')}
+        - Не определился с профессией: {user_profile.get('undecided')}
+        - Предпочтения/Склонности: {user_profile.get('inclination')}
         - Профильные предметы: {user_profile.get('subjects')}
-        - Финансовое состояние: {user_profile.get('financial_status')}
-        - Желаемый балл ЕНТ: {user_profile.get('target_unt')}
-        - Желаемый балл IELTS: {user_profile.get('target_ielts')}
-        - Желаемый балл SAT: {user_profile.get('target_sat')}
+        - Финансовый статус: {user_profile.get('financial_status')}
+        - Баллы ЕНТ (цель): {user_profile.get('target_unt')}
+        - IELTS: {user_profile.get('target_ielts')}, SAT: {user_profile.get('target_sat')}
         - Интересы: {user_profile.get('interests')}
 
-        Верни результат строго в формате JSON со следующими ключами:
-        - "steps": список объектов с полями "period" (временной интервал) и "action" (действие)
-        - "universities": список объектов с полями "name" (название), "city" (город), "description" (описание)
-        - "advice": список строк с советами
+        Верни результат СТРОГО в формате JSON со следующей структурой:
+        {{
+            "grant_chance_percent": 80,
+            "grant_status_text": "Высокий шанс на грант",
+            "recommended_direction": "Рекомендуемое направление (если не определился)",
+            "steps": [
+                {{"period": "Сентябрь - Октябрь 2026", "action": "Описание шага"}}
+            ],
+            "universities": [
+                {{
+                    "name": "Название ВУЗа",
+                    "city": "Город",
+                    "grant_cutoff": "Проходной балл (например: 110+)",
+                    "tuition": "Стоимость (платное)",
+                    "dorm": "Есть/Нет",
+                    "grant_chance": "Высокий/Средний/Низкий",
+                    "description": "Краткое описание"
+                }}
+            ],
+            "advice": ["Совет 1", "Совет 2"]
+        }}
         """
         try:
             response = self.json_model.generate_content(prompt)
@@ -39,17 +57,16 @@ class FuturePathAI:
     def ask_followup(self, user_profile: dict, context_roadmap: dict, question: str, lang: str = "Русский"):
         prompt = f"""
         Ты — AI-консультант FuturePath.kz. Отвечай на языке: {lang}.
-        Абитуриент {user_profile.get('name')} задал уточняющий вопрос по своей дорожной карте.
+        Абитуриент {user_profile.get('name')} задал уточняющий вопрос.
 
         Контекст профиля: {json.dumps(user_profile, ensure_ascii=False)}
-        Сгенерированная карта: {json.dumps(context_roadmap, ensure_ascii=False)}
+        Карта: {json.dumps(context_roadmap, ensure_ascii=False)}
+        Вопрос: {question}
 
-        Вопрос пользователя: {question}
-
-        Ответь кратко, четко и дружелюбно (не более 3-4 предложений).
+        Ответь кратко и полезно (3-4 предложения).
         """
         try:
             response = self.chat_model.generate_content(prompt)
             return response.text
         except Exception as e:
-            return f"Ошибка при ответе: {str(e)}"
+            return f"Ошибка: {str(e)}"
