@@ -78,7 +78,7 @@ def toggle_demo():
 
 st.sidebar.checkbox("🚀 Демо-режим (для питча)", key="demo_mode", on_change=toggle_demo)
 
-# Полный словарь перевода всего интерфейса
+# Словарь перевода интерфейса
 ui_texts = {
     "Русский": {
         "title": "🎓 BolashaqZholy.kz",
@@ -94,7 +94,6 @@ ui_texts = {
         "chat_ph": "Спросите что угодно о поступлении...",
         "cal_btn": "📅 Скачать календарь дедлайнов (.ics)",
         "rep_btn": "📄 Скачать полный отчет (.txt)",
-        # Поля формы
         "track_lbl": "Трек:",
         "grade_lbl": "Класс / Статус:",
         "undecided_lbl": "🧩 Я ещё не определился с профессией / предметами",
@@ -123,7 +122,6 @@ ui_texts = {
         "chat_ph": "Оқуға түсу туралы сұраңыз...",
         "cal_btn": "📅 Күнтізбені жүктеп алу (.ics)",
         "rep_btn": "📄 Толық есепті жүктеу (.txt)",
-        # Поля формы
         "track_lbl": "Трек:",
         "grade_lbl": "Сынып / Мәртебе:",
         "undecided_lbl": "🧩 Мамандық немесе пәндерді әлі таңдамадым",
@@ -152,7 +150,6 @@ ui_texts = {
         "chat_ph": "Ask anything about admissions...",
         "cal_btn": "📅 Download Deadlines Calendar (.ics)",
         "rep_btn": "📄 Download Full Report (.txt)",
-        # Поля формы
         "track_lbl": "Track:",
         "grade_lbl": "Grade / Status:",
         "undecided_lbl": "🧩 I haven't decided on a career / subjects yet",
@@ -200,7 +197,6 @@ elif st.session_state.page == "form":
         track = st.selectbox(t["track_lbl"], ["KZ (ЕНТ / Гранты)", "International (Зарубежные вузы)"])
         grade = st.selectbox(t["grade_lbl"], ["10 класс", "11 класс / Колледж"])
         
-        # Динамический блок профориентации
         undecided = st.checkbox(t["undecided_lbl"])
         inclination = ""
         if undecided:
@@ -242,7 +238,7 @@ elif st.session_state.page == "form":
         st.rerun()
 
 # ==========================================
-# ОКНО 3: Результаты и Дорожная карта
+# ОКНО 3: Результаты и Диагностика
 # ==========================================
 elif st.session_state.page == "roadmap":
     col_t, col_r = st.columns([3, 1])
@@ -367,5 +363,11 @@ elif st.session_state.page == "roadmap":
                         answer = "Ошибка API ключа."
                     st.write(answer)
                     st.session_state.chat_history.append({"role": "assistant", "content": answer})
+
+    # --- Подробная диагностика ошибок ---
+    elif res and "error" in res:
+        st.error(f"❌ Ошибка Gemini API: {res['error']}")
+    elif not api_key and not st.session_state.demo_mode:
+        st.error("🔑 API ключ не найден! Добавьте GEMINI_API_KEY в Secrets на Streamlit Cloud или включите Демо-режим в левом меню.")
     else:
         st.error("Ошибка при получении данных от ИИ.")
