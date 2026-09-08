@@ -13,7 +13,7 @@ class FuturePathAI:
     def generate_roadmap(self, user_profile: dict, lang: str = "Русский"):
         prompt = f"""
         Ты — главная аналитическая система платформы BolashaqZholy.kz. Создай детальную персональную карту поступления для {user_profile.get('name', 'Абитуриент')}.
-        Язык ответа: {lang}. Все описания, названия шагов и советы должны быть строго на языке: {lang}.
+        Язык ответа: {lang}. Все описания, названия шагов, курсы и советы должны быть строго на языке: {lang}.
 
         Данные абитуриента:
         - Трек: {user_profile.get('track')}
@@ -22,9 +22,15 @@ class FuturePathAI:
         - Склонности/Предпочтения: {user_profile.get('inclination')}
         - Профильные предметы: {user_profile.get('subjects')}
         - Финансовый статус: {user_profile.get('financial_status')}
+        - Желаемые города: {user_profile.get('preferred_cities')}
+        - Желаемые ВУЗы: {user_profile.get('target_unis')}
         - Целевой балл ЕНТ: {user_profile.get('target_unt')}
         - Целевой IELTS: {user_profile.get('target_ielts')}, SAT: {user_profile.get('target_sat')}
         - Дополнительные интересы: {user_profile.get('interests')}
+
+        Инструкции:
+        1. В первую очередь проанализируй указанные целевые ВУЗы ({user_profile.get('target_unis')}) и университет(ы) в предпочитаемых городах ({user_profile.get('preferred_cities')}). Оцени реальный шанс абитуриента пройти в них по баллам. Если указанных ВУЗов недостаточно, добавь 1-2 альтернативных варианта.
+        2. Подбери 2-3 рекомендуемых курса/интенсива или платформы (подготовка к ЕНТ, IELTS/SAT или спецкурсы по предметам) для закрытия пробелов.
 
         Верни результат СТРОГО в формате JSON со следующей структурой:
         {{
@@ -43,6 +49,13 @@ class FuturePathAI:
                     "dorm": "Есть/Нет",
                     "grant_chance": "Высокий/Средний/Низкий",
                     "description": "Краткое описание"
+                }}
+            ],
+            "recommended_courses": [
+                {{
+                    "title": "Название курса / Интенсива",
+                    "provider": "Провайдер или платформа",
+                    "reason": "Почему этот курс полезен"
                 }}
             ],
             "advice": ["Совет 1", "Совет 2"]
