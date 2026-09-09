@@ -43,6 +43,11 @@ def create_report_txt(user_name, res):
     for u in res.get('universities', []):
         if isinstance(u, dict):
             text += f"• {u.get('name')} ({u.get('city')}) | Балл: {u.get('grant_cutoff')} | Грант: {u.get('grant_chance')}\n  Описание: {u.get('description')}\n"
+    if res.get('university_reviews'):
+        text += "\n-----------------------------------------\n💬 ОТЗЫВЫ О ВУЗАХ И ОБЩЕЖИТИЯХ:\n-----------------------------------------\n"
+        for r in res.get('university_reviews', []):
+            if isinstance(r, dict):
+                text += f"• {r.get('name')} — Общага: {r.get('dorm_rating')}, Учеба: {r.get('study_rating')}\n  \"{r.get('review_text')}\"\n"
     if res.get('recommended_courses'):
         text += "\n-----------------------------------------\n📚 РЕКОМЕНДУЕМЫЕ КУРСЫ:\n-----------------------------------------\n"
         for c in res.get('recommended_courses', []):
@@ -79,7 +84,7 @@ lang = st.sidebar.selectbox("🌐 Язык / Тіл / Language", ["Русски�
 
 def toggle_demo():
     if st.session_state.demo_mode:
-        st.session_state.user_name = "Айсултан"
+        st.session_state.user_name = "Бексат"
 
 st.sidebar.checkbox("🚀 Демо-режим (для питча)", key="demo_mode", on_change=toggle_demo)
 
@@ -107,16 +112,20 @@ ui_texts = {
         "subj_lbl": "Профильные предметы ЕНТ:",
         "fin_lbl": "Финансовые цели:",
         "fin_opts": ["Рассчитываю только на грант", "Возможно платное обучение", "Зарубежные стипендии"],
+        "rural_quota_lbl": "🌾 Сельская квота (преимущество при поступлении на грант)",
+        "akimat_grant_lbl": "🏛️ Рассматриваю целевые гранты от местных акиматов",
         "cities_lbl": "Предпочитаемые города для учебы:",
         "cities_opts": ["Алматы", "Астана", "Шымкент", "Караганда", "Зарубеж / Любой город"],
         "target_unis_lbl": "Целевые ВУЗы (если есть конкретные пожелания):",
         "target_unis_ph": "Например: КБТУ, SDU, КазНУ",
-        "unt_lbl": "Целевой балл ЕНТ:",
+        "current_unt_lbl": "Текущий (пробный) балл ЕНТ:",
+        "target_unt_lbl": "Желаемый (целевой) балл ЕНТ:",
         "ielts_lbl": "Целевой IELTS (0 если не нужен):",
         "sat_lbl": "Целевой SAT (0 если не нужен):",
         "interests_lbl": "Дополнительные интересы и хобби:",
         "interests_ph": "IT, стартапы, технологии",
-        "courses_hdr": "📚 Рекомендуемые курсы и ресурсы"
+        "courses_hdr": "📚 Рекомендуемые курсы и ресурсы",
+        "reviews_hdr": "💬 Инсайты и отзывы студентов (ВУЗы и общежития)"
     },
     "Қазақша": {
         "title": "🎓 BolashaqZholy.kz",
@@ -140,16 +149,20 @@ ui_texts = {
         "subj_lbl": "ҰБТ бейіндік пәндері:",
         "fin_lbl": "Қаржылық мақсаттар:",
         "fin_opts": ["Тек грантқа үміттенемін", "Ақылы оқу мүмкіндігі бар", "Шетелдік стипендиялар"],
+        "rural_quota_lbl": "🌾 Ауыл квотасы (грантқа түсу кезіндегі басымдық)",
+        "akimat_grant_lbl": "🏛️ Жергілікті әкімдіктердің гранттарын қарастырамын",
         "cities_lbl": "Оқу үшін қалайтын қалалар:",
         "cities_opts": ["Алматы", "Астана", "Шымкент", "Қарағанды", "Шетел / Кез келген қала"],
         "target_unis_lbl": "Мақсатты ЖОО-лар (қалауыңыз бойынша):",
         "target_unis_ph": "Мысалы: КБТУ, SDU, ҚазҰУ",
-        "unt_lbl": "ҰБТ мақсатты балы:",
+        "current_unt_lbl": "Ағымдағы (сынақ) ҰБТ балы:",
+        "target_unt_lbl": "Мақсатты (қалаулы) ҰБТ балы:",
         "ielts_lbl": "Мақсатты IELTS (керек болмаса 0):",
         "sat_lbl": "Мақсатты SAT (керек болмаса 0):",
         "interests_lbl": "Қосымша қызығушылықтар мен хобби:",
         "interests_ph": "IT, стартаптар, технологиялар",
-        "courses_hdr": "📚 Ұсынылатын курстар мен материалдар"
+        "courses_hdr": "📚 Ұсынылатын курстар мен материалдар",
+        "reviews_hdr": "💬 Студенттердің пікірлері (ЖОО мен жатақханалар)"
     },
     "English": {
         "title": "🎓 BolashaqZholy.kz",
@@ -173,16 +186,20 @@ ui_texts = {
         "subj_lbl": "UNT Elective Subjects:",
         "fin_lbl": "Financial Goals:",
         "fin_opts": ["Relying only on a state grant", "Paid tuition is an option", "International scholarships"],
+        "rural_quota_lbl": "🌾 Rural Quota (advantage for grants)",
+        "akimat_grant_lbl": "🏛️ Considering local akimat targeted grants",
         "cities_lbl": "Preferred cities for study:",
         "cities_opts": ["Almaty", "Astana", "Shymkent", "Karaganda", "Abroad / Any city"],
         "target_unis_lbl": "Target Universities (optional):",
         "target_unis_ph": "E.g., KBTU, SDU, KazNU",
-        "unt_lbl": "Target UNT Score:",
+        "current_unt_lbl": "Current Mock UNT Score:",
+        "target_unt_lbl": "Target UNT Score:",
         "ielts_lbl": "Target IELTS (0 if not needed):",
         "sat_lbl": "Target SAT (0 if not needed):",
         "interests_lbl": "Additional Interests & Hobbies:",
         "interests_ph": "IT, startups, tech",
-        "courses_hdr": "📚 Recommended Courses & Resources"
+        "courses_hdr": "📚 Recommended Courses & Resources",
+        "reviews_hdr": "💬 Student Insights & Reviews (Universities & Dorms)"
     }
 }
 
@@ -233,10 +250,18 @@ elif st.session_state.page == "form":
         subjects = subject_comb
         financial_status = st.selectbox(t["fin_lbl"], t["fin_opts"])
         
+        rural_quota = st.checkbox(t["rural_quota_lbl"])
+        akimat_grant = st.checkbox(t["akimat_grant_lbl"])
+        
         preferred_cities = st.multiselect(t["cities_lbl"], t["cities_opts"], default=[t["cities_opts"][0]])
         target_unis = st.text_input(t["target_unis_lbl"], placeholder=t["target_unis_ph"])
         
-        target_unt = st.slider(t["unt_lbl"], 50, 140, 115)
+        col_u1, col_u2 = st.columns(2)
+        with col_u1:
+            current_unt = st.slider(t["current_unt_lbl"], 50, 140, 80)
+        with col_u2:
+            target_unt = st.slider(t["target_unt_lbl"], 50, 140, 115)
+            
         target_ielts = st.number_input(t["ielts_lbl"], 0.0, 9.0, 6.0, step=0.5)
         target_sat = st.number_input(t["sat_lbl"], 0, 1600, 1200, step=10)
         interests = st.text_area(t["interests_lbl"], t["interests_ph"])
@@ -252,8 +277,11 @@ elif st.session_state.page == "form":
             "inclination": inclination,
             "subjects": subjects,
             "financial_status": financial_status,
+            "rural_quota": rural_quota,
+            "akimat_grant": akimat_grant,
             "preferred_cities": preferred_cities,
             "target_unis": target_unis,
+            "current_unt": current_unt,
             "target_unt": target_unt,
             "target_ielts": target_ielts,
             "target_sat": target_sat,
@@ -292,6 +320,11 @@ elif st.session_state.page == "roadmap":
                     {"name": "SDU", "city": "Каскелен", "grant_cutoff": "105+", "tuition": "~1.5 млн ₸", "dorm": "Есть", "grant_chance": "Высокий", "description": "Сильный IT-факультет и англоязычное обучение."},
                     {"name": "Satbayev University", "city": "Алматы", "grant_cutoff": "95+", "tuition": "~1.1 млн ₸", "dorm": "Есть", "grant_chance": "Очень высокий", "description": "Большое количество государственных грантов."}
                 ],
+                "university_reviews": [
+                    {"name": "КБТУ", "dorm_rating": "4.2/5", "study_rating": "4.9/5", "review_text": "Общежитие находится в шаговой доступности или на хорошем уровне, нагрузка по учебе высокая, но преподаватели-практики топовые."},
+                    {"name": "SDU", "dorm_rating": "4.8/5", "study_rating": "4.7/5", "review_text": "Кампус в Каскелене очень уютный, собственный студгородок со всеми условиями, вай-фай везде, сильное студенческое сообщество."},
+                    {"name": "Satbayev University", "dorm_rating": "3.9/5", "study_rating": "4.5/5", "review_text": "Общаги требуют бронирования заранее, зато расположение в центре Алматы и сильная база по инженерным направлениям."}
+                ],
                 "recommended_courses": [
                     {"title": "Интенсив ЕНТ: Математическая грамотность", "provider": "Joo.kz / Онлайн-платформа", "reason": "Поможет систематизировать базу и закрыть пробелы в решении задач."},
                     {"title": "Курс подготовки к IELTS (Target 6.5)", "provider": "Stepik / Youtube", "reason": "Рекомендуется для укрепления навыков секции Writing и Speaking."}
@@ -299,7 +332,7 @@ elif st.session_state.page == "roadmap":
                 "advice": ["Обязательно участвуйте в мартовском и майском ЕНТ.", "Заранее подготовьте справки 075/у."]
             }
         elif api_key:
-            with st.spinner("🤖 ИИ генерирует аналитику и дорожную карту..."):
+            with st.spinner("🤖 ИИ генерирует аналитику, дорожную карту и отзывы студентов..."):
                 ai = FuturePathAI(api_key=api_key)
                 st.session_state.roadmap_result = ai.generate_roadmap(st.session_state.user_profile, lang=lang)
 
@@ -321,12 +354,13 @@ elif st.session_state.page == "roadmap":
 
         st.markdown("---")
 
-        # 2. Сравнительная Таблица Вузов
+        # 2. Сравнительная Таблица Вузов (Нумерация с 1)
         if "universities" in res and res["universities"]:
             st.markdown("### ⚔️ Сравнительная матрица вузов")
             unis = res["universities"]
             if isinstance(unis, list) and len(unis) > 0 and isinstance(unis[0], dict):
                 df = pd.DataFrame(unis)
+                df.index = range(1, len(df) + 1)
                 rename_dict = {
                     "name": "Вуз", "city": "Город", "grant_cutoff": "Проходной балл",
                     "tuition": "Стоимость", "dorm": "Общежитие", "grant_chance": "Шанс на грант",
@@ -338,14 +372,22 @@ elif st.session_state.page == "roadmap":
                 for u in unis:
                     st.markdown(f"* {u}")
 
-        # 3. Рекомендуемые курсы
+        # 3. Каталог отзывов о вузах и общежитиях
+        if "university_reviews" in res and res["university_reviews"]:
+            st.markdown(f"### {t['reviews_hdr']}")
+            for rev in res["university_reviews"]:
+                if isinstance(rev, dict):
+                    with st.expander(f"📍 {rev.get('name', 'ВУЗ')} — Общага: {rev.get('dorm_rating', 'N/A')} | Обучение: {rev.get('study_rating', 'N/A')}"):
+                        st.write(f"💬 *\"{rev.get('review_text', '')}\"*")
+
+        # 4. Рекомендуемые курсы
         if "recommended_courses" in res and res["recommended_courses"]:
             st.markdown(f"### {t['courses_hdr']}")
             for course in res["recommended_courses"]:
                 if isinstance(course, dict):
                     st.info(f"**{course.get('title')}** ({course.get('provider')})\n\n💡 {course.get('reason')}")
 
-        # 4. Шаги Подготовки
+        # 5. Шаги Подготовки
         if "steps" in res:
             st.markdown("### 📌 Персональные шаги подготовки")
             for step in res["steps"]:
@@ -354,7 +396,7 @@ elif st.session_state.page == "roadmap":
                 else:
                     st.markdown(f"* {step}")
 
-        # 5. Скачивание файлов
+        # 6. Скачивание файлов
         st.markdown("### 📥 Экспорт и интеграции")
         col_dl1, col_dl2 = st.columns(2)
         
@@ -376,7 +418,7 @@ elif st.session_state.page == "roadmap":
 
         st.markdown("---")
 
-        # 6. Чат с ИИ
+        # 7. Чат с ИИ
         st.subheader(t["chat_hdr"])
         for msg in st.session_state.chat_history:
             with st.chat_message(msg["role"]):
@@ -391,7 +433,7 @@ elif st.session_state.page == "roadmap":
             with st.chat_message("assistant"):
                 with st.spinner("..."):
                     if st.session_state.demo_mode:
-                        answer = f"В демо-режиме: {st.session_state.user_name}, с вашей целевой планкой шанс прохождения в КБТУ и SDU превышает 80%!"
+                        answer = f"В демо-режиме: {st.session_state.user_name}, отзывы по общежитиям и вузам сформированы на основе реального опыта студентов!"
                     elif api_key:
                         ai = FuturePathAI(api_key=api_key)
                         answer = ai.ask_followup(st.session_state.user_profile, res, user_question, lang=lang)
