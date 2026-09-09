@@ -5,15 +5,15 @@ class FuturePathAI:
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
         self.json_model = genai.GenerativeModel(
-            model_name="gemini-3.6-flash",
+            model_name="gemini-2.5-flash",
             generation_config={"response_mime_type": "application/json"}
         )
-        self.chat_model = genai.GenerativeModel(model_name="gemini-3.6-flash")
+        self.chat_model = genai.GenerativeModel(model_name="gemini-2.5-flash")
 
     def generate_roadmap(self, user_profile: dict, lang: str = "Русский"):
         prompt = f"""
         Ты — главная аналитическая система платформы BolashaqZholy.kz. Создай детальную персональную карту поступления для {user_profile.get('name', 'Абитуриент')}.
-        Язык ответа: {lang}. Все описания, названия шагов, курсы и советы должны быть строго на языке: {lang}.
+        Язык ответа: {lang}. Все описания, названия шагов, курсы, отзывы и советы должны быть строго на языке: {lang}.
 
         Данные абитуриента:
         - Трек: {user_profile.get('track')}
@@ -22,15 +22,20 @@ class FuturePathAI:
         - Склонности/Предпочтения: {user_profile.get('inclination')}
         - Профильные предметы: {user_profile.get('subjects')}
         - Финансовый статус: {user_profile.get('financial_status')}
+        - Сельская квота: {user_profile.get('rural_quota')}
+        - Гранты от акимата: {user_profile.get('akimat_grant')}
         - Желаемые города: {user_profile.get('preferred_cities')}
         - Желаемые ВУЗы: {user_profile.get('target_unis')}
-        - Целевой балл ЕНТ: {user_profile.get('target_unt')}
+        - Текущий (пробный) балл ЕНТ: {user_profile.get('current_unt')}
+        - Желаемый (целевой) балл ЕНТ: {user_profile.get('target_unt')}
         - Целевой IELTS: {user_profile.get('target_ielts')}, SAT: {user_profile.get('target_sat')}
         - Дополнительные интересы: {user_profile.get('interests')}
 
         Инструкции:
-        1. В первую очередь проанализируй указанные целевые ВУЗы ({user_profile.get('target_unis')}) и университет(ы) в предпочитаемых городах ({user_profile.get('preferred_cities')}). Оцени реальный шанс абитуриента пройти в них по баллам. Если указанных ВУЗов недостаточно, добавь 1-2 альтернативных варианта.
-        2. Подбери 2-3 рекомендуемых курса/интенсива или платформы (подготовка к ЕНТ, IELTS/SAT или спецкурсы по предметам) для закрытия пробелов.
+        1. Проанализируй разницу между текущим баллом ({user_profile.get('current_unt')}) и желаемым баллом ЕНТ ({user_profile.get('target_unt')}). Оцени реальный шанс абитуриента преодолеть этот разрыв и пройти в указанные целевые ВУЗы ({user_profile.get('target_unis')}).
+        2. Обязательно учти влияние сельской квоты ({user_profile.get('rural_quota')}) и возможность целевых грантов акимата ({user_profile.get('akimat_grant')}) при расчете шансов и подборе вузов.
+        3. Подбери 2-3 рекомендуемых курса/интенсива для закрытия пробелов.
+        4. Сформируй каталог реальных инсайтов и отзывов студентов о предложенных вузах и условиях проживания в общежитиях.
 
         Верни результат СТРОГО в формате JSON со следующей структурой:
         {{
@@ -49,6 +54,14 @@ class FuturePathAI:
                     "dorm": "Есть/Нет",
                     "grant_chance": "Высокий/Средний/Низкий",
                     "description": "Краткое описание"
+                }}
+            ],
+            "university_reviews": [
+                {{
+                    "name": "Название ВУЗа",
+                    "dorm_rating": "4.5/5",
+                    "study_rating": "4.8/5",
+                    "review_text": "Инсайт или реальный отзыв студента об условиях в общежитии и атмосфере в вузе."
                 }}
             ],
             "recommended_courses": [
